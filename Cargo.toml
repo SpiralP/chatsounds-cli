@@ -1,0 +1,16 @@
+[package]
+name = "chatsounds-cli"
+version = "0.1.0"
+authors = ["SpiralP <spiral.palmer@gmail.com>"]
+edition = "2018"
+
+[dependencies]
+chatsounds = { git = "https://github.com/SpiralP/rust-chatsounds.git", default-features = false }
+error-chain = "0.12.4"
+rand = "0.7.3"
+tokio = { version = "0.2.22", features = ["full"] }
+hound = "3.4.0"
+
+[features]
+default = []
+playback = ["chatsounds/playback"]
