@@ -72,12 +72,12 @@ async fn load_sources(chatsounds: &mut Chatsounds) {
                  }| {
                     match kind {
                         SourceKind::Api => chatsounds
-                            .fetch_github_api(repo, repo_path, false)
+                            .fetch_github_api(repo, repo_path, true)
                             .map_ok(FetchedSource::Api)
                             .boxed(),
 
                         SourceKind::Msgpack => chatsounds
-                            .fetch_github_msgpack(repo, repo_path, false)
+                            .fetch_github_msgpack(repo, repo_path, true)
                             .map_ok(FetchedSource::Msgpack)
                             .boxed(),
                     }
