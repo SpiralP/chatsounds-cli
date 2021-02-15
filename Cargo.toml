@@ -15,3 +15,12 @@ tokio = { version = "1", features = ["full"] }
 [features]
 default = []
 playback = ["chatsounds/playback"]
+
+
+
+[package.metadata.release]
+disable-publish = true
+tag-message = "Release version {{version}}"
+pre-release-commit-message = "Release {{version}}"
+post-release-commit-message = "Begin {{next_version}}"
+dev-version-ext = "alpha"
