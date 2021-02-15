@@ -233,7 +233,7 @@ dependencies = [
 
 [[package]]
 name = "chatsounds-cli"
-version = "0.1.1"
+version = "0.1.2-alpha"
 dependencies = [
  "chatsounds",
  "error-chain",
