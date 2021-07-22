@@ -60,32 +60,28 @@ async fn load_sources(chatsounds: &mut Chatsounds) {
         Msgpack(chatsounds::GitHubMsgpackEntries),
     }
 
-    // TODO undo this weirdness when this is fixed
-    // https://github.com/rust-lang/rust/issues/64552#issuecomment-669728225
-    let stream: std::pin::Pin<Box<dyn Stream<Item = _> + Send>> = Box::pin(
-        futures::stream::iter(SOURCES)
-            .map(
-                |Source {
-                     repo,
-                     repo_path,
-                     kind,
-                 }| {
-                    match kind {
-                        SourceKind::Api => chatsounds
-                            .fetch_github_api(repo, repo_path, true)
-                            .map_ok(FetchedSource::Api)
-                            .boxed(),
+    let stream = futures::stream::iter(SOURCES)
+        .map(
+            |Source {
+                 repo,
+                 repo_path,
+                 kind,
+             }| {
+                match kind {
+                    SourceKind::Api => chatsounds
+                        .fetch_github_api(repo, repo_path, true)
+                        .map_ok(FetchedSource::Api)
+                        .boxed(),
 
-                        SourceKind::Msgpack => chatsounds
-                            .fetch_github_msgpack(repo, repo_path, true)
-                            .map_ok(FetchedSource::Msgpack)
-                            .boxed(),
-                    }
-                    .map_ok(move |fetched_source| (*repo, *repo_path, fetched_source))
-                },
-            )
-            .buffered(5),
-    );
+                    SourceKind::Msgpack => chatsounds
+                        .fetch_github_msgpack(repo, repo_path, true)
+                        .map_ok(FetchedSource::Msgpack)
+                        .boxed(),
+                }
+                .map_ok(move |fetched_source| (*repo, *repo_path, fetched_source))
+            },
+        )
+        .buffered(5);
 
     let fetched = stream.try_collect::<Vec<_>>().await.unwrap();
 
