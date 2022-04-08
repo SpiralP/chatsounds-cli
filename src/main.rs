@@ -1,37 +1,24 @@
-mod error;
-
-use crate::error::*;
+use anyhow::Result;
 use chatsounds::Chatsounds;
 use futures::prelude::*;
 use rand::thread_rng;
 
-#[derive(Copy, Clone)]
-enum SourceKind {
-    Api,
-    Msgpack,
+struct GitHubRepo {
+    name: &'static str,
+    path: &'static str,
 }
 
-#[derive(Copy, Clone)]
-struct Source {
-    repo: &'static str,
-    repo_path: &'static str,
-    kind: SourceKind,
+enum Source {
+    Api(GitHubRepo),
+    MsgPack(GitHubRepo),
 }
 impl Source {
-    const fn api(repo: &'static str, repo_path: &'static str) -> Self {
-        Self {
-            repo,
-            repo_path,
-            kind: SourceKind::Api,
-        }
+    const fn api(name: &'static str, path: &'static str) -> Source {
+        Source::Api(GitHubRepo { name, path })
     }
 
-    const fn msgpack(repo: &'static str, repo_path: &'static str) -> Self {
-        Self {
-            repo,
-            repo_path,
-            kind: SourceKind::Msgpack,
-        }
+    const fn msgpack(name: &'static str, path: &'static str) -> Source {
+        Source::MsgPack(GitHubRepo { name, path })
     }
 }
 
@@ -54,77 +41,60 @@ const SOURCES: &[Source] = &[
     Source::msgpack("PAC3-Server/chatsounds-valve-games", "tf2"),
 ];
 
-async fn load_sources(chatsounds: &mut Chatsounds) {
-    enum FetchedSource {
+async fn load_sources(chatsounds: &mut Chatsounds) -> Result<()> {
+    enum SourceData {
         Api(chatsounds::GitHubApiTrees),
-        Msgpack(chatsounds::GitHubMsgpackEntries),
+        MsgPack(chatsounds::GitHubMsgpackEntries),
     }
 
     let stream = futures::stream::iter(SOURCES)
-        .map(
-            |Source {
-                 repo,
-                 repo_path,
-                 kind,
-             }| {
-                match kind {
-                    SourceKind::Api => chatsounds
-                        .fetch_github_api(repo, repo_path, true)
-                        .map_ok(FetchedSource::Api)
-                        .boxed(),
+        .map(|source| match source {
+            Source::Api(repo) => chatsounds
+                .fetch_github_api(repo.name, repo.path, true)
+                .map_ok(move |data| (repo, SourceData::Api(data)))
+                .boxed(),
 
-                    SourceKind::Msgpack => chatsounds
-                        .fetch_github_msgpack(repo, repo_path, true)
-                        .map_ok(FetchedSource::Msgpack)
-                        .boxed(),
-                }
-                .map_ok(move |fetched_source| (*repo, *repo_path, fetched_source))
-            },
-        )
+            Source::MsgPack(repo) => chatsounds
+                .fetch_github_msgpack(repo.name, repo.path, true)
+                .map_ok(move |data| (repo, SourceData::MsgPack(data)))
+                .boxed(),
+        })
         .buffered(5);
 
-    let fetched = stream.try_collect::<Vec<_>>().await.unwrap();
+    let fetched = stream.try_collect::<Vec<_>>().await?;
 
-    for (repo, repo_path, fetched_source) in fetched {
-        match fetched_source {
-            FetchedSource::Api(data) => {
-                chatsounds.load_github_api(repo, repo_path, data).unwrap();
-            }
-
-            FetchedSource::Msgpack(data) => {
-                chatsounds
-                    .load_github_msgpack(repo, repo_path, data)
-                    .unwrap();
+    for (repo, data) in fetched {
+        match data {
+            SourceData::Api(data) => chatsounds.load_github_api(repo.name, repo.path, data)?,
+            SourceData::MsgPack(data) => {
+                chatsounds.load_github_msgpack(repo.name, repo.path, data)?
             }
         }
     }
+
+    Ok(())
 }
 
 #[tokio::main]
 async fn main() -> Result<()> {
-    use chatsounds::Source;
-
     let input = std::env::args().nth(1).unwrap();
 
-    tokio::fs::create_dir_all("chatsounds").await.unwrap();
+    tokio::fs::create_dir_all("chatsounds").await?;
 
-    let mut chatsounds = Chatsounds::new("chatsounds").unwrap();
+    let mut chatsounds = Chatsounds::new("chatsounds")?;
 
-    load_sources(&mut chatsounds).await;
+    load_sources(&mut chatsounds).await?;
 
     #[cfg(feature = "playback")]
     chatsounds
         .play(input, thread_rng())
-        .await
-        .unwrap()
+        .await?
         .sleep_until_end();
 
     #[cfg(not(feature = "playback"))]
     {
-        let queue = chatsounds
-            .get_sources_queue(input, thread_rng())
-            .await
-            .unwrap();
+        use chatsounds::Source;
+        let queue = chatsounds.get_sources_queue(input, thread_rng()).await?;
 
         println!("{} Hz, {} channels", queue.sample_rate(), queue.channels());
 
@@ -135,10 +105,10 @@ async fn main() -> Result<()> {
             sample_format: hound::SampleFormat::Int,
         };
         println!("writing to output.wav");
-        let mut writer = hound::WavWriter::create("output.wav", spec).unwrap();
+        let mut writer = hound::WavWriter::create("output.wav", spec)?;
 
         for sample in queue {
-            writer.write_sample(sample).unwrap();
+            writer.write_sample(sample)?;
         }
     }
 
