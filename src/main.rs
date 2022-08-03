@@ -79,24 +79,35 @@ async fn load_sources(chatsounds: &mut Chatsounds) -> Result<()> {
 async fn main() -> Result<()> {
     let input = std::env::args().nth(1).unwrap();
 
-    tokio::fs::create_dir_all("chatsounds").await?;
-
-    let mut chatsounds = Chatsounds::new("chatsounds")?;
-
+    let cache_dir = "chatsounds";
+    tokio::fs::create_dir_all(cache_dir).await?;
+    let mut chatsounds = Chatsounds::new(cache_dir)?;
     load_sources(&mut chatsounds).await?;
 
     #[cfg(feature = "playback")]
-    chatsounds
-        .play(input, thread_rng())
-        .await?
-        .sleep_until_end();
+    {
+        chatsounds
+            .play(input, thread_rng())
+            .await?
+            .sleep_until_end();
+    }
 
     #[cfg(not(feature = "playback"))]
     {
         use chatsounds::Source;
-        let queue = chatsounds.get_sources_queue(input, thread_rng()).await?;
 
-        println!("{} Hz, {} channels", queue.sample_rate(), queue.channels());
+        let mut sources = chatsounds.get_sources(&input, thread_rng()).await.unwrap();
+
+        eprintln!("{} sources", sources.len());
+
+        let (sink, queue) = rodio::queue::queue(false);
+        for source in sources.drain(..) {
+            sink.append(source);
+        }
+        let queue: rodio::source::UniformSourceIterator<_, i16> =
+            rodio::source::UniformSourceIterator::new(queue, 2, 44100);
+
+        eprintln!("{} Hz, {} channels", queue.sample_rate(), queue.channels());
 
         let spec = hound::WavSpec {
             channels: queue.channels(),
@@ -104,7 +115,7 @@ async fn main() -> Result<()> {
             bits_per_sample: 16,
             sample_format: hound::SampleFormat::Int,
         };
-        println!("writing to output.wav");
+        eprintln!("writing to output.wav");
         let mut writer = hound::WavWriter::create("output.wav", spec)?;
 
         for sample in queue {

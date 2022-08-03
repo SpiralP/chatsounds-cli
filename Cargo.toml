@@ -2,7 +2,8 @@
 name = "chatsounds-cli"
 version = "0.3.1-alpha"
 authors = ["SpiralP <spiral.palmer@gmail.com>"]
-edition = "2018"
+edition = "2021"
+publish = false
 
 [dependencies]
 anyhow = { version = "1", features = ["backtrace"] }
@@ -10,17 +11,17 @@ chatsounds = { git = "https://github.com/SpiralP/rust-chatsounds.git", default-f
 futures = "0.3"
 hound = "3"
 rand = "0.8"
+rodio = { git = "https://github.com/RustAudio/rodio.git" }
 tokio = { version = "1", features = ["full"] }
 
 [features]
 default = []
-playback = ["chatsounds/playback"]
-
+playback = []
 
 
 [package.metadata.release]
-disable-publish = true
-tag-message = "Release version {{version}}"
-pre-release-commit-message = "Release {{version}}"
-post-release-commit-message = "Begin {{next_version}}"
+dev-version = true
 dev-version-ext = "alpha"
+post-release-commit-message = "Begin {{next_version}}"
+pre-release-commit-message = "Release {{version}}"
+tag-message = "Release version {{version}}"
