@@ -1,4 +1,4 @@
-use anyhow::Result;
+use anyhow::{Context, Result};
 use chatsounds::Chatsounds;
 use futures::prelude::*;
 use hound::{SampleFormat, WavSpec, WavWriter};
@@ -79,12 +79,19 @@ async fn load_sources(chatsounds: &mut Chatsounds) -> Result<()> {
 
 #[tokio::main]
 async fn main() -> Result<()> {
-    let input = std::env::args().nth(1).unwrap();
+    let input = std::env::args().nth(1).context("need arg")?;
 
     let cache_dir = "chatsounds";
     tokio::fs::create_dir_all(cache_dir).await?;
+
     let mut chatsounds = Chatsounds::new(cache_dir)?;
     load_sources(&mut chatsounds).await?;
+
+    let search_input = input.trim_start_matches("search ");
+    if !search_input.is_empty() {
+        search(chatsounds, search_input)?;
+        return Ok(());
+    }
 
     #[cfg(feature = "playback")]
     {
@@ -98,9 +105,14 @@ async fn main() -> Result<()> {
     {
         use chatsounds::Source;
 
-        let mut sources = chatsounds.get_sources(&input, thread_rng()).await.unwrap();
+        let mut sources = chatsounds.get_sources(&input, thread_rng()).await?;
 
         eprintln!("{} sources", sources.len());
+
+        if sources.is_empty() {
+            search(chatsounds, &input)?;
+            return Ok(());
+        }
 
         let (sink, queue) = rodio::queue::queue(false);
         for source in sources.drain(..) {
@@ -123,6 +135,14 @@ async fn main() -> Result<()> {
             writer.write_sample(sample)?;
         }
     }
+
+    Ok(())
+}
+
+fn search(chatsounds: Chatsounds, input: &str) -> Result<()> {
+    let mut results = chatsounds.search(&input);
+    let results = results.drain(..).map(|(_, str)| str).collect::<Vec<_>>();
+    println!("{:#?}", results);
 
     Ok(())
 }
