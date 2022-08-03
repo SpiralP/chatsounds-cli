@@ -87,10 +87,11 @@ async fn main() -> Result<()> {
     let mut chatsounds = Chatsounds::new(cache_dir)?;
     load_sources(&mut chatsounds).await?;
 
-    let search_input = input.trim_start_matches("search ");
-    if !search_input.is_empty() {
-        search(chatsounds, search_input)?;
-        return Ok(());
+    if input.starts_with("search ") {
+        if let Some(input) = input.get("search ".len()..) {
+            search(chatsounds, input)?;
+            return Ok(());
+        }
     }
 
     #[cfg(feature = "playback")]
