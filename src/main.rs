@@ -1,7 +1,9 @@
 use anyhow::Result;
 use chatsounds::Chatsounds;
 use futures::prelude::*;
+use hound::{SampleFormat, WavSpec, WavWriter};
 use rand::thread_rng;
+use rodio::source::UniformSourceIterator;
 
 struct GitHubRepo {
     name: &'static str,
@@ -87,7 +89,7 @@ async fn main() -> Result<()> {
     #[cfg(feature = "playback")]
     {
         chatsounds
-            .play(input, thread_rng())
+            .play(&input, thread_rng())
             .await?
             .sleep_until_end();
     }
@@ -104,19 +106,18 @@ async fn main() -> Result<()> {
         for source in sources.drain(..) {
             sink.append(source);
         }
-        let queue: rodio::source::UniformSourceIterator<_, i16> =
-            rodio::source::UniformSourceIterator::new(queue, 2, 44100);
+        let queue: UniformSourceIterator<_, i16> = UniformSourceIterator::new(queue, 2, 44100);
 
         eprintln!("{} Hz, {} channels", queue.sample_rate(), queue.channels());
 
-        let spec = hound::WavSpec {
+        let spec = WavSpec {
             channels: queue.channels(),
             sample_rate: queue.sample_rate(),
             bits_per_sample: 16,
-            sample_format: hound::SampleFormat::Int,
+            sample_format: SampleFormat::Int,
         };
         eprintln!("writing to output.wav");
-        let mut writer = hound::WavWriter::create("output.wav", spec)?;
+        let mut writer = WavWriter::create("output.wav", spec)?;
 
         for sample in queue {
             writer.write_sample(sample)?;
