@@ -7,11 +7,11 @@ publish = false
 
 [dependencies]
 anyhow = { version = "1", features = ["backtrace"] }
-chatsounds = { git = "https://github.com/SpiralP/rust-chatsounds.git", default-features = false }
+chatsounds = { git = "https://github.com/SpiralP/rust-chatsounds.git", default-features = false, features = ["fs", "rayon", "mp3", "wav"] }
 futures = "0.3"
 hound = "3"
 rand = "0.8"
-rodio = { git = "https://github.com/RustAudio/rodio.git" }
+rodio = "0.15"
 tokio = { version = "1", features = ["full"] }
 
 [features]

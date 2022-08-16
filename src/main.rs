@@ -1,3 +1,5 @@
+use std::path::PathBuf;
+
 use anyhow::{Context, Result};
 use chatsounds::Chatsounds;
 use futures::prelude::*;
@@ -81,10 +83,10 @@ async fn load_sources(chatsounds: &mut Chatsounds) -> Result<()> {
 async fn main() -> Result<()> {
     let input = std::env::args().nth(1).context("need arg")?;
 
-    let cache_dir = "chatsounds";
-    tokio::fs::create_dir_all(cache_dir).await?;
+    let cache_dir = PathBuf::from("chatsounds");
+    tokio::fs::create_dir_all(&cache_dir).await?;
 
-    let mut chatsounds = Chatsounds::new(cache_dir)?;
+    let mut chatsounds = Chatsounds::new(&cache_dir)?;
     load_sources(&mut chatsounds).await?;
 
     if input.starts_with("search ") {
@@ -141,7 +143,7 @@ async fn main() -> Result<()> {
 }
 
 fn search(chatsounds: Chatsounds, input: &str) -> Result<()> {
-    let mut results = chatsounds.search(&input);
+    let mut results = chatsounds.search(input);
     let results = results.drain(..).map(|(_, str)| str).collect::<Vec<_>>();
     println!("{:#?}", results);
 
