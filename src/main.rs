@@ -65,14 +65,20 @@ async fn load_sources(chatsounds: &mut Chatsounds) -> Result<()> {
         })
         .buffered(5);
 
-    let fetched = stream.try_collect::<Vec<_>>().await?;
+    let results = stream.collect::<Vec<std::result::Result<_, _>>>().await;
 
-    for (repo, data) in fetched {
-        match data {
-            SourceData::Api(data) => chatsounds.load_github_api(repo.name, repo.path, data)?,
-            SourceData::MsgPack(data) => {
-                chatsounds.load_github_msgpack(repo.name, repo.path, data)?
+    for result in results {
+        match result {
+            Err(e) => {
+                eprintln!("Failed to fetch: {:?}", e);
             }
+
+            Ok((repo, data)) => match data {
+                SourceData::Api(data) => chatsounds.load_github_api(repo.name, repo.path, data)?,
+                SourceData::MsgPack(data) => {
+                    chatsounds.load_github_msgpack(repo.name, repo.path, data)?
+                }
+            },
         }
     }
 
