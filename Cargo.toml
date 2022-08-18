@@ -5,18 +5,18 @@ authors = ["SpiralP <spiral.palmer@gmail.com>"]
 edition = "2021"
 publish = false
 
+[features]
+default = []
+playback = ["chatsounds/playback"]
+
 [dependencies]
-anyhow = { version = "1", features = ["backtrace"] }
+anyhow = "1"
 chatsounds = { git = "https://github.com/SpiralP/rust-chatsounds.git", default-features = false, features = ["fs", "rayon", "mp3", "vorbis", "wav"] }
 futures = "0.3"
 hound = "3"
 rand = "0.8"
 rodio = "0.15"
 tokio = { version = "1", features = ["full"] }
-
-[features]
-default = []
-playback = ["chatsounds/playback"]
 
 
 [package.metadata.release]
