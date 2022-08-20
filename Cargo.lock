@@ -148,7 +148,7 @@ dependencies = [
 
 [[package]]
 name = "chatsounds-cli"
-version = "0.6.0"
+version = "0.6.1-alpha"
 dependencies = [
  "anyhow",
  "chatsounds",
