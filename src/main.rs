@@ -31,7 +31,10 @@ async fn main() -> Result<()> {
 
     #[cfg(feature = "playback")]
     {
-        setup.play(&input, thread_rng()).await?.sleep_until_end();
+        chatsounds
+            .play(&input, thread_rng())
+            .await?
+            .sleep_until_end();
     }
 
     #[cfg(not(feature = "playback"))]
