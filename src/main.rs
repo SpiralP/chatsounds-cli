@@ -4,7 +4,7 @@ use anyhow::{Context, Result};
 use chatsounds::Chatsounds;
 use hound::{SampleFormat, WavSpec, WavWriter};
 use rand::thread_rng;
-use rodio::source::UniformSourceIterator;
+use rodio::{source::UniformSourceIterator, Source};
 
 use self::setup::setup;
 
@@ -39,8 +39,6 @@ async fn main() -> Result<()> {
 
     #[cfg(not(feature = "playback"))]
     {
-        use chatsounds::Source;
-
         const OUT_FILE: &str = "output.wav";
 
         let mut sources = chatsounds.get_sources(&input, thread_rng()).await?;
