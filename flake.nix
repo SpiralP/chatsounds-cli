@@ -13,19 +13,15 @@
             inherit system;
           };
         in
-        rec {
+        {
           default = pkgs.rustPlatform.buildRustPackage {
             name = "chatsounds-cli";
-            src = lib.cleanSourceWith rec {
+            src = lib.cleanSourceWith {
               src = ./.;
               filter = path: type:
                 lib.cleanSourceFilter path type
                 && (
-                  let
-                    baseName = builtins.baseNameOf (builtins.toString path);
-                    relPath = lib.removePrefix (builtins.toString ./.) (builtins.toString path);
-                  in
-                  lib.any (re: builtins.match re relPath != null) [
+                  lib.any (re: builtins.match re (lib.removePrefix (builtins.toString ./.) (builtins.toString path)) != null) [
                     "/\.cargo"
                     "/\.cargo/.*"
                     "/build.rs"
@@ -40,7 +36,7 @@
             cargoLock = {
               lockFile = ./Cargo.lock;
               outputHashes = {
-                "chatsounds-0.2.0" = "sha256-HJq5MXkXnEKGOHX+DRzVhQjLTPmar0MWW7aItqrlpys=";
+                "chatsounds-0.2.0" = "sha256-PnggDT0oWtRRowrGoD8Bi8+Fpss6SKzQ1PDk3n1tCBM=";
               };
             };
 
