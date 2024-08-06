@@ -37,8 +37,8 @@ async fn main() -> Result<()> {
 
     #[cfg(not(feature = "playback"))]
     {
+        use chatsounds::rodio::{source::UniformSourceIterator, Source};
         use hound::{SampleFormat, WavSpec, WavWriter};
-        use rodio::{source::UniformSourceIterator, Source};
 
         const OUT_FILE: &str = "output.wav";
 
@@ -51,7 +51,7 @@ async fn main() -> Result<()> {
             return Ok(());
         }
 
-        let (sink, queue) = rodio::queue::queue(false);
+        let (sink, queue) = chatsounds::rodio::queue::queue(false);
         for source in sources.drain(..) {
             sink.append(source);
         }
