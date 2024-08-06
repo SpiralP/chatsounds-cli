@@ -1,37 +1,27 @@
 {
   inputs = {
-    nixpkgs.url = "github:NixOS/nixpkgs/nixos-23.11";
+    nixpkgs.url = "github:NixOS/nixpkgs/nixos-24.05";
   };
 
   outputs = { nixpkgs, ... }:
     let
       inherit (nixpkgs) lib;
 
-      makePackage = (system: dev:
+      makePackages = (pkgs:
         let
-          pkgs = import nixpkgs {
-            inherit system;
-          };
+          rustManifest = lib.importTOML ./Cargo.toml;
         in
         {
           default = pkgs.rustPlatform.buildRustPackage {
-            name = "chatsounds-cli";
-            src = lib.cleanSourceWith {
-              src = ./.;
-              filter = path: type:
-                lib.cleanSourceFilter path type
-                && (
-                  lib.any (re: builtins.match re (lib.removePrefix (builtins.toString ./.) (builtins.toString path)) != null) [
-                    "/\.cargo"
-                    "/\.cargo/.*"
-                    "/build.rs"
-                    "/Cargo.lock"
-                    "/Cargo.toml"
-                    "/src"
-                    "/src/.*"
-                  ]
-                );
-            };
+            pname = rustManifest.package.name;
+            version = rustManifest.package.version;
+
+            src = lib.sourceByRegex ./. [
+              "^\.cargo(/.*)?$"
+              "^build\.rs$"
+              "^Cargo\.(lock|toml)$"
+              "^src(/.*)?$"
+            ];
 
             cargoLock = {
               lockFile = ./Cargo.lock;
@@ -40,27 +30,53 @@
               };
             };
 
-            nativeBuildInputs = with pkgs; [
-              pkg-config
-            ] ++ (if dev then
-              with pkgs; [
-                clippy
-                rustfmt
-                rust-analyzer
-              ] else [ ]);
-
             buildInputs = with pkgs; [
-              openssl
               alsa-lib
+              openssl
+            ];
+
+            nativeBuildInputs = with pkgs; [
+              makeWrapper
+              pkg-config
             ];
           };
         }
       );
     in
     builtins.foldl' lib.recursiveUpdate { } (builtins.map
-      (system: {
-        devShells.${system} = makePackage system true;
-        packages.${system} = makePackage system false;
-      })
+      (system:
+        let
+          pkgs = import nixpkgs {
+            inherit system;
+          };
+
+          packages = makePackages pkgs;
+        in
+        {
+          devShells.${system} = packages // {
+            default =
+              let
+                allDrvsIn = (name:
+                  lib.lists.flatten (
+                    builtins.map
+                      (drv: drv.${name} or [ ])
+                      (builtins.attrValues packages)
+                  ));
+              in
+              pkgs.mkShell {
+                name = "dev-shell";
+                packages = with pkgs; [
+                  clippy
+                  (rustfmt.override { asNightly = true; })
+                  rust-analyzer
+                ];
+                buildInputs = allDrvsIn "buildInputs";
+                nativeBuildInputs = allDrvsIn "nativeBuildInputs";
+                propagatedBuildInputs = allDrvsIn "propagatedBuildInputs";
+                propagatedNativeBuildInputs = allDrvsIn "propagatedNativeBuildInputs";
+              };
+          };
+          packages.${system} = packages;
+        })
       lib.systems.flakeExposed);
 }
