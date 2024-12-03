@@ -26,7 +26,7 @@
             cargoLock = {
               lockFile = ./Cargo.lock;
               outputHashes = {
-                "chatsounds-0.2.0" = "sha256-AVHKWvj9DnfdRcFRmCu0Jt+eRwqyDCq9nHssSkeJ9/M=";
+                "chatsounds-0.2.0" = "sha256-HDzjU2vLX/VjcxzzaJYlDr3r4u5DIe/qeRQKmU/Ht2g=";
               };
             };
 
