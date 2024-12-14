@@ -12,7 +12,7 @@
           rustManifest = lib.importTOML ./Cargo.toml;
         in
         {
-          default = pkgs.rustPlatform.buildRustPackage {
+          default = pkgs.rustPlatform.buildRustPackage rec {
             pname = rustManifest.package.name;
             version = rustManifest.package.version;
 
@@ -39,6 +39,8 @@
               makeWrapper
               pkg-config
             ];
+
+            meta.mainProgram = pname;
           };
         }
       );
