@@ -3,47 +3,42 @@
     nixpkgs.url = "github:NixOS/nixpkgs/nixos-24.11";
   };
 
-  outputs = { nixpkgs, ... }:
+  outputs = { self, nixpkgs }:
     let
       inherit (nixpkgs) lib;
 
-      makePackages = (pkgs:
-        let
-          rustManifest = lib.importTOML ./Cargo.toml;
-        in
-        {
-          default = pkgs.rustPlatform.buildRustPackage rec {
-            pname = rustManifest.package.name;
-            version = rustManifest.package.version;
+      rustManifest = lib.importTOML ./Cargo.toml;
 
-            src = lib.sourceByRegex ./. [
-              "^\.cargo(/.*)?$"
-              "^build\.rs$"
-              "^Cargo\.(lock|toml)$"
-              "^src(/.*)?$"
-            ];
+      makePackages = (pkgs: {
+        default = pkgs.rustPlatform.buildRustPackage rec {
+          pname = rustManifest.package.name;
+          version = "${rustManifest.package.version}-${self.shortRev or self.dirtyShortRev}";
 
-            cargoLock = {
-              lockFile = ./Cargo.lock;
-              outputHashes = {
-                "chatsounds-0.2.0" = "sha256-b6WGW8lkHjklsRh+CesqgPWO9ndhWK1ZMWY+ztj2PtE=";
-              };
-            };
+          src = lib.sourceByRegex ./. [
+            "^\.cargo(/.*)?$"
+            "^build\.rs$"
+            "^Cargo\.(lock|toml)$"
+            "^src(/.*)?$"
+          ];
 
-            buildInputs = with pkgs; [
-              alsa-lib
-              openssl
-            ];
-
-            nativeBuildInputs = with pkgs; [
-              makeWrapper
-              pkg-config
-            ];
-
-            meta.mainProgram = pname;
+          cargoLock = {
+            lockFile = ./Cargo.lock;
+            allowBuiltinFetchGit = true;
           };
-        }
-      );
+
+          buildInputs = with pkgs; [
+            alsa-lib
+            openssl
+          ];
+
+          nativeBuildInputs = with pkgs; [
+            makeWrapper
+            pkg-config
+          ];
+
+          meta.mainProgram = pname;
+        };
+      });
     in
     builtins.foldl' lib.recursiveUpdate { } (builtins.map
       (system:
