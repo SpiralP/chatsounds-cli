@@ -9,10 +9,13 @@
 
       rustManifest = lib.importTOML ./Cargo.toml;
 
+      revSuffix = lib.optionalString (self ? shortRev || self ? dirtyShortRev)
+        "-${self.shortRev or self.dirtyShortRev}";
+
       makePackages = (pkgs: {
         default = pkgs.rustPlatform.buildRustPackage rec {
           pname = rustManifest.package.name;
-          version = "${rustManifest.package.version}-${self.shortRev or self.dirtyShortRev}";
+          version = rustManifest.package.version + revSuffix;
 
           src = lib.sourceByRegex ./. [
             "^\.cargo(/.*)?$"
