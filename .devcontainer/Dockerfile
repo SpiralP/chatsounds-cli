@@ -1,4 +1,4 @@
-FROM debian:testing@sha256:251c723aad0e93dbd71d566c2341dcbc0767d67b0022a9ca3f0e1f99f6da355f
+FROM debian:testing@sha256:8ac1a6436385cbc6aee56b98a2671c26a26d1f74d6da42d58084c2179355edde
 
 RUN export DEBIAN_FRONTEND=noninteractive \
   && apt-get -y update \
