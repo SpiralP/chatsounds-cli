@@ -2,7 +2,7 @@ mod setup;
 
 use anyhow::{Context, Result};
 use chatsounds::Chatsounds;
-use rand::thread_rng;
+use rand::rng;
 
 use self::setup::setup;
 
@@ -42,7 +42,7 @@ async fn main() -> Result<()> {
 
         const OUT_FILE: &str = "output.wav";
 
-        let mut sources = chatsounds.get_sources(&input, thread_rng()).await?;
+        let mut sources = chatsounds.get_sources(&input, rng()).await?;
 
         eprintln!("{} sources", sources.len());
 
@@ -55,7 +55,7 @@ async fn main() -> Result<()> {
         for source in sources.drain(..) {
             sink.append(source);
         }
-        let queue: UniformSourceIterator<_, i16> = UniformSourceIterator::new(queue, 2, 44100);
+        let queue = UniformSourceIterator::new(queue, 2, 44100);
 
         eprintln!("{} Hz, {} channels", queue.sample_rate(), queue.channels());
 
