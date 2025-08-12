@@ -42,7 +42,11 @@ async fn main() -> Result<()> {
 
         const OUT_FILE: &str = "output.wav";
 
-        let mut sources = chatsounds.get_sources(&input, rng()).await?;
+        let (mut sources, _chatsounds): (Vec<_>, Vec<_>) = chatsounds
+            .get_sources(&input, rng())
+            .await?
+            .into_iter()
+            .unzip();
 
         eprintln!("{} sources", sources.len());
 
