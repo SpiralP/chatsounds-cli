@@ -41,9 +41,9 @@ dependencies = [
 
 [[package]]
 name = "anyhow"
-version = "1.0.98"
+version = "1.0.99"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "e16d2d3311acee920a9eb8d33b8cbc1787ce4a264e85f964c2404b969bdcd487"
+checksum = "b0674a1ddeecb70197781e945de4b3b8ffb61fa939a5597bcf48503737663100"
 
 [[package]]
 name = "arrayvec"
@@ -153,7 +153,7 @@ checksum = "9555578bc9e57714c812a1f84e4fc5b4d21fcb063490c624de019f7464c91268"
 [[package]]
 name = "chatsounds"
 version = "3.0.0"
-source = "git+https://github.com/SpiralP/rust-chatsounds.git?branch=main#a89d2f73c2fbc57321e15c0022e3a9c767ee7900"
+source = "git+https://github.com/SpiralP/rust-chatsounds.git?branch=main#66e941c88ba74cde98018c58695a99c736c7ed6a"
 dependencies = [
  "bytes",
  "futures",
