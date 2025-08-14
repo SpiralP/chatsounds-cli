@@ -6,19 +6,19 @@ use rand::rng;
 
 use self::setup::setup;
 
-fn search(chatsounds: Chatsounds, input: &str) -> Result<()> {
+fn search(chatsounds: Chatsounds, input: &str) -> Result<usize> {
     let mut results = chatsounds.search(input);
     let results = results.drain(..).map(|(_, str)| str).collect::<Vec<_>>();
     println!("{:#?}", results);
 
-    Ok(())
+    Ok(results.len())
 }
 
 #[tokio::main]
 async fn main() -> Result<()> {
     let input = std::env::args().nth(1).context("need arg")?;
 
-    let mut chatsounds = setup().await?;
+    let chatsounds = setup().await?;
 
     if input.starts_with("search ") {
         if let Some(input) = input.get("search ".len()..) {
@@ -27,10 +27,16 @@ async fn main() -> Result<()> {
         }
     }
 
+    play_or_render_audio(&input, chatsounds).await?;
+
+    Ok(())
+}
+
+async fn play_or_render_audio(input: &str, mut chatsounds: Chatsounds) -> Result<()> {
     #[cfg(feature = "playback")]
     {
         chatsounds
-            .play(&input, thread_rng())
+            .play(input, thread_rng())
             .await?
             .sleep_until_end();
     }
@@ -43,7 +49,7 @@ async fn main() -> Result<()> {
         const OUT_FILE: &str = "output.wav";
 
         let (mut sources, _chatsounds): (Vec<_>, Vec<_>) = chatsounds
-            .get_sources(&input, rng())
+            .get_sources(input, rng())
             .await?
             .into_iter()
             .unzip();
@@ -51,7 +57,7 @@ async fn main() -> Result<()> {
         eprintln!("{} sources", sources.len());
 
         if sources.is_empty() {
-            search(chatsounds, &input)?;
+            search(chatsounds, input)?;
             return Ok(());
         }
 
@@ -78,4 +84,27 @@ async fn main() -> Result<()> {
     }
 
     Ok(())
+}
+
+#[tokio::test]
+async fn test_setup() {
+    setup().await.unwrap();
+}
+
+#[tokio::test]
+async fn test_search() {
+    let chatsounds = setup().await.unwrap();
+    let matches = search(chatsounds, "ah hello gordon freeman its good to see you").unwrap();
+    assert_eq!(matches, 1);
+}
+
+#[tokio::test]
+async fn test_play_or_render_audio() {
+    let chatsounds = setup().await.unwrap();
+
+    play_or_render_audio("ah hello gordon freeman its good to see you", chatsounds)
+        .await
+        .unwrap();
+    let file = tokio::fs::File::open("output.wav").await.unwrap();
+    assert_eq!(file.metadata().await.unwrap().len(), 1225372);
 }
