@@ -72,8 +72,8 @@ async fn play_or_render_audio(input: &str, mut chatsounds: Chatsounds) -> Result
         let spec = WavSpec {
             channels: queue.channels(),
             sample_rate: queue.sample_rate(),
-            bits_per_sample: 16,
-            sample_format: SampleFormat::Int,
+            bits_per_sample: 32,
+            sample_format: SampleFormat::Float,
         };
         eprintln!("writing to {:?}", OUT_FILE);
         let mut writer = WavWriter::create(OUT_FILE, spec)?;
