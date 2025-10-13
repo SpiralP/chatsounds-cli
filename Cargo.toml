@@ -11,7 +11,7 @@ file_output = ["hound"]
 playback = ["chatsounds/playback"]
 
 [dependencies]
-anyhow = "=1.0.99"
+anyhow = "=1.0.100"
 chatsounds = { git = "https://github.com/SpiralP/rust-chatsounds.git", branch = "main", default-features = false, features = [
     "fs",
     "rayon",
