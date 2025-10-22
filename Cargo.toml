@@ -22,7 +22,7 @@ chatsounds = { git = "https://github.com/SpiralP/rust-chatsounds.git", branch = 
 futures = "=0.3.31"
 hound = { version = "=3.5.1", optional = true }
 rand = "=0.9.2"
-tokio = { version = "=1.47.1", features = ["full"] }
+tokio = { version = "=1.47.2", features = ["full"] }
 
 
 [package.metadata.release]
