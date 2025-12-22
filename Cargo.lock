@@ -124,7 +124,7 @@ checksum = "9330f8b2ff13f34540b44e946ef35111825727b38d33286ef986142615121801"
 [[package]]
 name = "chatsounds"
 version = "3.0.1"
-source = "git+https://github.com/SpiralP/rust-chatsounds.git?branch=main#26ed67be94357a0ce9b1e9ceb613e3bdcd5fd4b7"
+source = "git+https://github.com/SpiralP/rust-chatsounds.git?branch=main#f7aea0833a239f5cab35742ac5666de4c9fd5dfe"
 dependencies = [
  "bytes",
  "futures",
