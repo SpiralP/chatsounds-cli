@@ -68,13 +68,15 @@ async fn load_sources(chatsounds: &mut Chatsounds) -> Result<()> {
     for result in results {
         match result {
             Err(e) => {
-                eprintln!("Failed to fetch: {:?}", e);
+                eprintln!("Failed to fetch: {e:?}");
             }
 
             Ok((repo, data)) => match data {
-                SourceData::Api(data) => chatsounds.load_github_api(repo.name, repo.path, data)?,
+                SourceData::Api(data) => {
+                    chatsounds.load_github_api(repo.name, repo.path, data)?;
+                }
                 SourceData::MsgPack(data) => {
-                    chatsounds.load_github_msgpack(repo.name, repo.path, data)?
+                    chatsounds.load_github_msgpack(repo.name, repo.path, data)?;
                 }
             },
         }

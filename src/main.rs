@@ -1,87 +1,129 @@
+#![warn(clippy::pedantic)]
+
 mod setup;
 
-use anyhow::{Context, Result};
+use anyhow::Result;
 use chatsounds::Chatsounds;
-use rand::rng;
+use clap::{Parser, Subcommand};
 
 use self::setup::setup;
 
-fn search(chatsounds: Chatsounds, input: &str) -> Result<usize> {
-    let mut results = chatsounds.search(input);
-    let results = results.drain(..).map(|(_, str)| str).collect::<Vec<_>>();
-    println!("{:#?}", results);
+#[derive(Parser)]
+#[command(version, about, long_about = None)]
+struct Cli {
+    #[command(subcommand)]
+    command: Command,
+}
 
-    Ok(results.len())
+#[derive(Subcommand)]
+enum Command {
+    /// Search for chatsounds matching the sentence
+    Search { sentence: String },
+    /// Play the chatsounds for the sentence
+    #[cfg(feature = "playback")]
+    Play { sentence: String },
+    /// Render the chatsounds as raw PCM (f32le, 44100 Hz, stereo) to stdout
+    #[cfg(feature = "render")]
+    Render { sentence: String },
 }
 
 #[tokio::main]
 async fn main() -> Result<()> {
-    let input = std::env::args().nth(1).context("need arg")?;
-
+    let cli = Cli::parse();
     let chatsounds = setup().await?;
 
-    if input.starts_with("search ") {
-        if let Some(input) = input.get("search ".len()..) {
-            search(chatsounds, input)?;
-            return Ok(());
+    match cli.command {
+        Command::Search { sentence } => {
+            search(&sentence, &chatsounds);
+        }
+        #[cfg(feature = "playback")]
+        Command::Play { sentence } => {
+            play_audio(&sentence, chatsounds).await?;
+        }
+        #[cfg(feature = "render")]
+        Command::Render { sentence } => {
+            use std::io::stdout;
+
+            render_audio(&sentence, chatsounds, stdout().lock()).await?;
         }
     }
-
-    play_or_render_audio(&input, chatsounds).await?;
 
     Ok(())
 }
 
-async fn play_or_render_audio(input: &str, mut chatsounds: Chatsounds) -> Result<()> {
-    #[cfg(feature = "playback")]
-    {
-        chatsounds
-            .play(input, thread_rng())
-            .await?
-            .sleep_until_end();
+fn search(input: &str, chatsounds: &Chatsounds) -> usize {
+    let mut results = chatsounds.search(input);
+    let results = results.drain(..).map(|(_, str)| str).collect::<Vec<_>>();
+    for result in &results {
+        println!("{result}");
     }
 
-    #[cfg(not(feature = "playback"))]
-    {
-        use chatsounds::rodio::{source::UniformSourceIterator, Source};
-        use hound::{SampleFormat, WavSpec, WavWriter};
+    results.len()
+}
 
-        const OUT_FILE: &str = "output.wav";
+#[cfg(feature = "playback")]
+async fn play_audio(input: &str, mut chatsounds: Chatsounds) -> Result<()> {
+    use rand::rng;
 
-        let (mut sources, _chatsounds): (Vec<_>, Vec<_>) = chatsounds
-            .get_sources(input, rng())
-            .await?
-            .into_iter()
-            .unzip();
+    let (sink, _chatsounds) = chatsounds.play(input, rng()).await?;
+    sink.sleep_until_end();
 
-        eprintln!("{} sources", sources.len());
+    Ok(())
+}
 
-        if sources.is_empty() {
-            search(chatsounds, input)?;
-            return Ok(());
-        }
+#[cfg(feature = "render")]
+async fn render_audio(
+    input: &str,
+    mut chatsounds: Chatsounds,
+    writer: impl std::io::Write,
+) -> Result<()> {
+    use std::io::{BufWriter, Write};
 
-        let (sink, queue) = chatsounds::rodio::queue::queue(false);
-        for source in sources.drain(..) {
-            sink.append(source);
-        }
-        let queue = UniformSourceIterator::new(queue, 2, 44100);
+    use chatsounds::rodio::{Source, queue::queue, source::UniformSourceIterator};
+    use rand::rng;
 
-        eprintln!("{} Hz, {} channels", queue.sample_rate(), queue.channels());
+    const SAMPLE_RATE: u32 = 44100;
+    const CHANNELS: u16 = 2;
+    const MAX_DURATION_SECS: u32 = 60;
+    const MAX_SAMPLES: usize = (SAMPLE_RATE * CHANNELS as u32 * MAX_DURATION_SECS) as usize;
 
-        let spec = WavSpec {
-            channels: queue.channels(),
-            sample_rate: queue.sample_rate(),
-            bits_per_sample: 32,
-            sample_format: SampleFormat::Float,
-        };
-        eprintln!("writing to {:?}", OUT_FILE);
-        let mut writer = WavWriter::create(OUT_FILE, spec)?;
+    let (mut sources, _chatsounds): (Vec<_>, Vec<_>) = chatsounds
+        .get_sources(input, rng())
+        .await?
+        .into_iter()
+        .unzip();
 
-        for sample in queue {
-            writer.write_sample(sample)?;
-        }
+    eprintln!("{} sources", sources.len());
+
+    if sources.is_empty() {
+        search(input, &chatsounds);
+        return Ok(());
     }
+
+    let (sink, queue) = queue(false);
+    for source in sources.drain(..) {
+        sink.append(source);
+    }
+    let queue = UniformSourceIterator::new(queue, CHANNELS, SAMPLE_RATE);
+
+    eprintln!(
+        "{} Hz, {} channels, f32le (max {MAX_DURATION_SECS} sec)",
+        queue.sample_rate(),
+        queue.channels(),
+    );
+
+    let mut writer = BufWriter::new(writer);
+
+    let mut queue = queue.peekable();
+    for sample in queue.by_ref().take(MAX_SAMPLES) {
+        writer.write_all(&sample.to_le_bytes())?;
+    }
+
+    if queue.peek().is_some() {
+        eprintln!("warning: output truncated at {MAX_DURATION_SECS} seconds");
+    }
+
+    writer.flush()?;
 
     Ok(())
 }
@@ -94,17 +136,42 @@ async fn test_setup() {
 #[tokio::test]
 async fn test_search() {
     let chatsounds = setup().await.unwrap();
-    let matches = search(chatsounds, "ah hello gordon freeman its good to see you").unwrap();
+    let matches = search("ah hello gordon freeman its good to see you", &chatsounds);
     assert_eq!(matches, 1);
 }
 
 #[tokio::test]
+#[cfg(feature = "render")]
 async fn test_play_or_render_audio() {
     let chatsounds = setup().await.unwrap();
 
-    play_or_render_audio("ah hello gordon freeman its good to see you", chatsounds)
-        .await
-        .unwrap();
-    let file = tokio::fs::File::open("output.wav").await.unwrap();
-    assert_eq!(file.metadata().await.unwrap().len(), 1225372);
+    let mut output = Vec::new();
+    render_audio(
+        "ah hello gordon freeman its good to see you",
+        chatsounds,
+        &mut output,
+    )
+    .await
+    .unwrap();
+
+    // f32le stereo 44100 Hz: 4 bytes per sample
+    assert_eq!(output.len(), 1_225_304);
+}
+
+#[tokio::test]
+#[cfg(feature = "render")]
+async fn test_render_audio_truncates_loop() {
+    let chatsounds = setup().await.unwrap();
+
+    let mut output = Vec::new();
+    render_audio(
+        "ah hello gordon freeman its good to see you:loop()",
+        chatsounds,
+        &mut output,
+    )
+    .await
+    .unwrap();
+
+    // Should be truncated at MAX_SAMPLES (60 sec * 44100 Hz * 2 channels * 4 bytes)
+    assert_eq!(output.len(), 60 * 44100 * 2 * 4);
 }
