@@ -77,15 +77,19 @@ async fn render_audio(
     mut chatsounds: Chatsounds,
     writer: impl std::io::Write,
 ) -> Result<()> {
-    use std::io::{BufWriter, Write};
+    use std::{
+        io::{BufWriter, Write},
+        num::NonZero,
+    };
 
-    use chatsounds::rodio::{Source, queue::queue, source::UniformSourceIterator};
+    use chatsounds::rodio::{Source, nz, queue::queue, source::UniformSourceIterator};
     use rand::rng;
 
-    const SAMPLE_RATE: u32 = 44100;
-    const CHANNELS: u16 = 2;
+    const SAMPLE_RATE: NonZero<u32> = nz!(44100);
+    const CHANNELS: NonZero<u16> = nz!(2);
     const MAX_DURATION_SECS: u32 = 60;
-    const MAX_SAMPLES: usize = (SAMPLE_RATE * CHANNELS as u32 * MAX_DURATION_SECS) as usize;
+    const MAX_SAMPLES: usize =
+        (SAMPLE_RATE.get() * CHANNELS.get() as u32 * MAX_DURATION_SECS) as usize;
 
     let (mut sources, _chatsounds): (Vec<_>, Vec<_>) = chatsounds
         .get_sources(input, rng())
