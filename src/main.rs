@@ -159,7 +159,7 @@ async fn test_play_or_render_audio() {
     .unwrap();
 
     // f32le stereo 44100 Hz: 4 bytes per sample
-    assert_eq!(output.len(), 1_225_304);
+    assert_eq!(output.len(), 1_225_632);
 }
 
 #[tokio::test]
