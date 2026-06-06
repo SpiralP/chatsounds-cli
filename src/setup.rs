@@ -31,6 +31,7 @@ const SOURCES: &[Source] = &[
         "sound/chatsounds/autoadd",
     ),
     Source::api("PAC3-Server/chatsounds", "sounds/chatsounds"),
+    Source::api("suchipi/suchipi-chatsounds", "sounds"),
     Source::msgpack("PAC3-Server/chatsounds-valve-games", "csgo"),
     Source::msgpack("PAC3-Server/chatsounds-valve-games", "css"),
     Source::msgpack("PAC3-Server/chatsounds-valve-games", "ep1"),
