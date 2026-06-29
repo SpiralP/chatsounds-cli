@@ -12,7 +12,7 @@ render = ["codecs"]
 playback = ["codecs", "chatsounds/playback"]
 
 [dependencies]
-anyhow = "=1.0.102"
+anyhow = "=1.0.103"
 clap = { version = "=4.5.61", features = ["derive"] }
 chatsounds = { git = "https://github.com/SpiralP/rust-chatsounds.git", branch = "main", default-features = false, features = [
     "fs",
