@@ -231,7 +231,7 @@ dependencies = [
 [[package]]
 name = "chatsounds"
 version = "6.1.0"
-source = "git+https://github.com/SpiralP/rust-chatsounds.git?branch=main#3bda03ffb6afc26c5ec3c2af0e164720cac4b09a"
+source = "git+https://github.com/SpiralP/rust-chatsounds.git?branch=main#2860677cef1ce3c4d6134b4dead3730a9f5684e5"
 dependencies = [
  "base16ct",
  "bytes",
