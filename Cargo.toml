@@ -18,7 +18,7 @@ chatsounds = { git = "https://github.com/SpiralP/rust-chatsounds.git", branch = 
     "fs",
     "rayon",
 ] }
-futures = "=0.3.32"
+futures = "=0.3.33"
 rand = "=0.10.2"
 tokio = { version = "=1.52.4", features = ["full"] }
 
